@@ -15,20 +15,32 @@ namespace StrausRadio
         private static Random rng = new Random();
         // TODO: Add Extension filter to settings
         private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac" };
+        // TODO: Add Path to music to settings
+        private const string MUSIC_PATH = @"\\cerebrum\music";
 
         public Worker(ILogger<Worker> logger)
         {
             _logger = logger;
         }
 
+        private void Init()
+        {
+
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            Init();
+
+            _logger.LogInformation($"Worker started at: {DateTime.Now}");
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
+                _logger.LogInformation($"Beginning to play Albums at: {DateTime.Now}");
 
-                var randomAlbums = GetAlbums();
+                var randomAlbums = GetAlbums(MUSIC_PATH);
+
+                _logger.LogInformation($"Album listings have been retreived and randomized at: {DateTime.Now}");
 
                 foreach (var album in randomAlbums)
                 {
@@ -40,11 +52,11 @@ namespace StrausRadio
             }
         }
 
-        private List<Album> GetAlbums()
+        private List<Album> GetAlbums(string musicLocation)
         {
             var results = new List<Album>();
 
-            DirectoryInfo musicDir = new DirectoryInfo(@"\\cerebrum\music");
+            DirectoryInfo musicDir = new DirectoryInfo(musicLocation);
 
             var artistDirs = musicDir.EnumerateDirectories();
 
