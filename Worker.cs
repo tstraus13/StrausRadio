@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using System.Diagnostics;
 
 namespace StrausRadio
 {
@@ -16,7 +17,9 @@ namespace StrausRadio
         // TODO: Add Extension filter to settings
         private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac" };
         // TODO: Add Path to music to settings
-        private const string MUSIC_PATH = @"\\cerebrum\music";
+        private const string MUSIC_PATH = @"/mnt/music";
+        // TODO: Add Temp Path to settings
+        private const string TEMP_PATH = @"/tmp";
 
         public Worker(ILogger<Worker> logger)
         {
@@ -25,7 +28,7 @@ namespace StrausRadio
 
         private void Init()
         {
-
+            ClearTemp(TEMP_PATH);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -46,10 +49,26 @@ namespace StrausRadio
                 {
                     foreach (var track in album.Tracks)
                     {
+                        _logger.LogInformation($"Now Playing {track.Name} from {album.Name} by {album.Artist} at: {DateTime.Now}");
                         // track.FullPath;
+                        var tempWav = await ConvertToWav(track);
+
+                        var process = new ProcessStartInfo("aplay", $"-Dhw:1,0 {tempWav}")
+                        {
+                            CreateNoWindow = true,
+                            UseShellExecute = false,
+                            RedirectStandardError = true,
+                            RedirectStandardOutput = true
+                        };
+
+                        await ProcessAsync.RunAsync(process);
                     }
                 }
+
+                ClearTemp(TEMP_PATH);
             }
+
+            ClearTemp(TEMP_PATH);
         }
 
         private List<Album> GetAlbums(string musicLocation)
@@ -75,6 +94,7 @@ namespace StrausRadio
 
                     album.Tracks = tracks.Where(t => AudioExtensions.Contains(t.Extension))
                         .Select(t => new Track() { Name = t.Name, Extension = t.Extension, FullPath = t.FullName })
+                        .OrderBy(t => t.Name)
                         .ToList();
 
                     results.Add(album);
@@ -82,6 +102,55 @@ namespace StrausRadio
             }
 
             return results.OrderBy(r => rng.Next()).ToList();
+        }
+
+        private async Task<string> ConvertToWav(Track track)
+        {
+            ProcessStartInfo process;
+
+            var tempFile = $"{TEMP_PATH}/{Guid.NewGuid()}.wav";
+
+            switch (track.Extension)
+            {
+                case ".flac":
+                    process = new ProcessStartInfo("flac", $"-d \"{track.FullPath}\" -o \"{tempFile}\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true
+                    };
+                    await ProcessAsync.RunAsync(process);
+                    break;
+                case ".mp3":
+                    process = new ProcessStartInfo("mpg123", $"-w \"{tempFile}\" \"{track.FullPath}\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true
+                    };
+                    await ProcessAsync.RunAsync(process);
+                    break;
+                default:
+                    return null;
+            }
+
+            return tempFile;
+        }
+
+        private void ClearTemp(string tempDir)
+        {
+            _logger.LogInformation($"Clearing Temp folder at: {DateTime.Now}");
+
+            DirectoryInfo temp = new DirectoryInfo(tempDir);
+
+            var files = temp.EnumerateFiles().Where(f => f.Extension.Contains("wav"));
+
+            foreach (var file in files)
+            {
+                file.Delete();
+            }
         }
     }
 
