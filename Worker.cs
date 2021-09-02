@@ -17,7 +17,7 @@ namespace StrausRadio
         // TODO: Add Extension filter to settings
         private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac" };
         // TODO: Add Path to music to settings
-        private const string MUSIC_PATH = @"\\10.1.10.102\music";
+        private const string MUSIC_PATH = @"/mnt/music";
         // TODO: Add Temp Path to settings
         private const string TEMP_PATH = @"/tmp";
 
@@ -28,7 +28,7 @@ namespace StrausRadio
 
         private void Init()
         {
-            //ClearTemp(TEMP_PATH);
+            ClearTemp(TEMP_PATH);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,7 +50,7 @@ namespace StrausRadio
                     foreach (var track in album.Tracks)
                     {
                         _logger.LogInformation($"Now Playing {track.FileName} from {album.Title} by {album.Artist} at: {DateTime.Now}");
-                        // track.FullPath;
+
                         var tempWav = await ConvertToWav(track);
 
                         var process = new ProcessStartInfo("aplay", $"-Dhw:1,0 {tempWav}")
@@ -65,10 +65,10 @@ namespace StrausRadio
                     }
                 }
 
-                //ClearTemp(TEMP_PATH);
+                ClearTemp(TEMP_PATH);
             }
 
-            //ClearTemp(TEMP_PATH);
+            ClearTemp(TEMP_PATH);
         }
 
         private List<Album> GetAlbums(string musicLocation)
