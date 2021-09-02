@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <UserSecretsId>dotnet-StrausRadio-F09D23DA-6241-48FA-BA6F-0AA49C8479C5</UserSecretsId>
+    <AssemblyName>strausradio</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
