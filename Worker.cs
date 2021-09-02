@@ -15,7 +15,7 @@ namespace StrausRadio
         private readonly ILogger<Worker> _logger;
         private static Random rng = new Random();
         // TODO: Add Extension filter to settings
-        private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac" };
+        private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac", ".wav" };
         // TODO: Add Path to music to settings
         private const string MUSIC_PATH = @"/mnt/music";
         // TODO: Add Temp Path to settings
@@ -70,9 +70,9 @@ namespace StrausRadio
                             _logger.LogInformation($"Finished playback of file at: {DateTime.Now}");
 
                     }
-                }
 
-                ClearTemp(TEMP_PATH);
+                    ClearTemp(TEMP_PATH);
+                }
             }
 
             ClearTemp(TEMP_PATH);
@@ -173,31 +173,14 @@ namespace StrausRadio
 
             var tempFile = $"{TEMP_PATH}/{Guid.NewGuid()}.wav";
 
-            switch (track.Extension)
+            process = new ProcessStartInfo("ffmpeg", $"-i \"{track.FullPath}\" \"{tempFile}\"")
             {
-                case ".flac":
-                    process = new ProcessStartInfo("flac", $"-d \"{track.FullPath}\" -o \"{tempFile}\"")
-                    {
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        RedirectStandardError = true,
-                        RedirectStandardOutput = true
-                    };
-                    result = await ProcessAsync.RunAsync(process);
-                    break;
-                case ".mp3":
-                    process = new ProcessStartInfo("mpg123", $"-w \"{tempFile}\" \"{track.FullPath}\"")
-                    {
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        RedirectStandardError = true,
-                        RedirectStandardOutput = true
-                    };
-                    result = await ProcessAsync.RunAsync(process);
-                    break;
-                default:
-                    return null;
-            }
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+            result = await ProcessAsync.RunAsync(process);
 
             if (result == null || result.ExitCode == null || result.ExitCode != 0)
                 _logger.LogError($"There was an issue Converting the file {track.FullPath} to WAV at: {DateTime.Now}");
