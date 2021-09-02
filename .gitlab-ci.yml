@@ -11,7 +11,7 @@ build_job:
     - mkdir -pv $ARTIFACT_PATH
     - dotnet build -c Release
     - dotnet publish -r linux-arm -c Release /p:PublishSingleFile=true /p:PublishTrimmed=true
-    - cp bin/Release/net5.0/linux-x64/publish/strausradio $ARTIFACT_PATH
+    - cp bin/Release/net5.0/linux-arm/publish/strausradio $ARTIFACT_PATH
     - ls -lsah $ARTIFACT_PATH
   artifacts:
     name: "StrausRadio Executable"
