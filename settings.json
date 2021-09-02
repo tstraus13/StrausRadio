@@ -1,0 +1,15 @@
+{
+  // REQUIRED - Will not run without a directory set
+  "MusicLibraryPath": "",
+
+  // Default: None
+  // Arguments to give aplay
+  "APlayArgumnets": "",
+
+  // Default: /tmp
+  "TempDirectory": "",
+
+  // Default: .mp3, .flac, .wav (Separate by semicolon ;)
+  // What file extensions do you want to look for as music
+  "AudioExtensions": ""
+}
