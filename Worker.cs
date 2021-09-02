@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
-using TagLib;
 
 namespace StrausRadio
 {
@@ -18,7 +17,7 @@ namespace StrausRadio
         // TODO: Add Extension filter to settings
         private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac" };
         // TODO: Add Path to music to settings
-        private const string MUSIC_PATH = @"/mnt/music";
+        private const string MUSIC_PATH = @"\\10.1.10.102\music";
         // TODO: Add Temp Path to settings
         private const string TEMP_PATH = @"/tmp";
 
@@ -29,7 +28,7 @@ namespace StrausRadio
 
         private void Init()
         {
-            ClearTemp(TEMP_PATH);
+            //ClearTemp(TEMP_PATH);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,7 +49,7 @@ namespace StrausRadio
                 {
                     foreach (var track in album.Tracks)
                     {
-                        _logger.LogInformation($"Now Playing {track.Name} from {album.Title} by {album.Artist} at: {DateTime.Now}");
+                        _logger.LogInformation($"Now Playing {track.FileName} from {album.Title} by {album.Artist} at: {DateTime.Now}");
                         // track.FullPath;
                         var tempWav = await ConvertToWav(track);
 
@@ -66,10 +65,10 @@ namespace StrausRadio
                     }
                 }
 
-                ClearTemp(TEMP_PATH);
+                //ClearTemp(TEMP_PATH);
             }
 
-            ClearTemp(TEMP_PATH);
+            //ClearTemp(TEMP_PATH);
         }
 
         private List<Album> GetAlbums(string musicLocation)
@@ -86,32 +85,74 @@ namespace StrausRadio
 
                 foreach (var albumDir in albumDirs)
                 {
-                    var album = new Album();
-
-                    var trackFiles = albumDir.EnumerateFiles();
-
-                    var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension))
-                        .OrderBy(t => t.Name);
-
-                    var albumTracks = new List<Track>();
-
-                    foreach (var track in tracks)
+                    if (albumDir.EnumerateDirectories().Any())
                     {
-                        albumTracks.Add(new Track()
+                        var discs = albumDir.EnumerateDirectories().OrderBy(d => d.Name);
+                        var album = new Album();
+                        var albumTracks = new List<Track>();
+
+                        foreach (var disc in discs)
                         {
-                            Title = TagLib.File.Create(track.FullName).Tag.Title,
-                            Name = track.Name,
-                            FullPath = track.FullName,
-                            Extension = track.Extension
-                        });
+                            var trackFiles = disc.EnumerateFiles();
+
+                            var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+
+                            foreach (var track in tracks)
+                            {
+                                var num = 1;
+
+                                albumTracks.Add(new Track()
+                                {
+                                    Number = num,
+                                    Disc = int.Parse(disc.Name.Split(" ")[1]),
+                                    FileName = track.Name,
+                                    FullPath = track.FullName,
+                                    Extension = track.Extension
+                                });
+
+                                num++;
+                            }
+                        }
+
+                        album.Artist = artistDir.Name;
+                        album.Title = albumDir.Name;
+                        album.Tracks = albumTracks.OrderBy(t => t.Disc).ThenBy(t => t.Number).ToList();
+
+                        results.Add(album);
                     }
 
-                    var tags = TagLib.File.Create(albumTracks.First().FullPath);
+                    else
+                    {
+                        var album = new Album();
 
-                    album.Artist = tags.Tag.FirstAlbumArtist;
-                    album.Title = tags.Tag.Album;
+                        var trackFiles = albumDir.EnumerateFiles();
 
-                    results.Add(album);
+                        var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+
+                        var albumTracks = new List<Track>();
+
+                        foreach (var track in tracks)
+                        {
+                            var num = 1;
+
+                            albumTracks.Add(new Track()
+                            {
+                                Number = num,
+                                Disc = 1,
+                                FileName = track.Name,
+                                FullPath = track.FullName,
+                                Extension = track.Extension
+                            });
+
+                            num++;
+                        }
+
+                        album.Artist = artistDir.Name;
+                        album.Title = albumDir.Name;
+                        album.Tracks = albumTracks.OrderBy(t => t.Disc).ThenBy(t => t.Number).ToList();
+
+                        results.Add(album);
+                    }
                 }                
             }
 
@@ -177,8 +218,9 @@ namespace StrausRadio
 
     public struct Track
     {
-        public string Title;
-        public string Name;
+        public int Number;
+        public int Disc;
+        public string FileName;
         public string Extension;
         public string FullPath;
     }
