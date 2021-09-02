@@ -49,11 +49,11 @@ namespace StrausRadio
                 {
                     foreach (var track in album.Tracks)
                     {
-                        _logger.LogInformation($"Now Playing {track.FileName} from {album.Title} by {album.Artist} at: {DateTime.Now}");
+                        _logger.LogInformation($"Now Playing \"{track.FileName}\" from {album.Title} by {album.Artist} at: {DateTime.Now}");
 
-                        var tempWav = await ConvertToWav(track);
+                        var file = track.Extension != ".wav" ? await ConvertToWav(track) : track.FullPath;
 
-                        var process = new ProcessStartInfo("aplay", $"-Dhw:1,0 {tempWav}")
+                        var process = new ProcessStartInfo("aplay", $"-Dhw:1,0 {file}")
                         {
                             CreateNoWindow = true,
                             UseShellExecute = false,
@@ -61,7 +61,14 @@ namespace StrausRadio
                             RedirectStandardOutput = true
                         };
 
-                        await ProcessAsync.RunAsync(process);
+                        var result = await ProcessAsync.RunAsync(process);
+
+                        if (result == null || result.ExitCode == null || result.ExitCode != 0)
+                            _logger.LogError($"There was an issue playing the file {track.FullPath} at: {DateTime.Now}");
+
+                        else
+                            _logger.LogInformation($"Finished playback of file at: {DateTime.Now}");
+
                     }
                 }
 
@@ -162,6 +169,7 @@ namespace StrausRadio
         private async Task<string> ConvertToWav(Track track)
         {
             ProcessStartInfo process;
+            ProcessAsync.Result result;
 
             var tempFile = $"{TEMP_PATH}/{Guid.NewGuid()}.wav";
 
@@ -175,7 +183,7 @@ namespace StrausRadio
                         RedirectStandardError = true,
                         RedirectStandardOutput = true
                     };
-                    await ProcessAsync.RunAsync(process);
+                    result = await ProcessAsync.RunAsync(process);
                     break;
                 case ".mp3":
                     process = new ProcessStartInfo("mpg123", $"-w \"{tempFile}\" \"{track.FullPath}\"")
@@ -185,11 +193,17 @@ namespace StrausRadio
                         RedirectStandardError = true,
                         RedirectStandardOutput = true
                     };
-                    await ProcessAsync.RunAsync(process);
+                    result = await ProcessAsync.RunAsync(process);
                     break;
                 default:
                     return null;
             }
+
+            if (result == null || result.ExitCode == null || result.ExitCode != 0)
+                _logger.LogError($"There was an issue Converting the file {track.FullPath} to WAV at: {DateTime.Now}");
+
+            else
+                _logger.LogInformation($"Successfully converted file to WAV at: {DateTime.Now}");
 
             return tempFile;
         }
