@@ -1,0 +1,14 @@
+﻿[Unit]
+Description=Straus Radio
+#After=network.target # If you have you music collection on a networking location. You may want to wait for network to complete.
+
+[Service]
+Type=notify
+# Specify the user and group to run as
+User=
+Group=
+# Specify the location where you installed the exectable
+ExecStart=/usr/local/bin/strausradio
+
+[Install]
+WantedBy=multi-user.target
