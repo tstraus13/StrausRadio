@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
+using TagLib;
 
 namespace StrausRadio
 {
@@ -49,7 +50,7 @@ namespace StrausRadio
                 {
                     foreach (var track in album.Tracks)
                     {
-                        _logger.LogInformation($"Now Playing {track.Name} from {album.Name} by {album.Artist} at: {DateTime.Now}");
+                        _logger.LogInformation($"Now Playing {track.Name} from {album.Title} by {album.Artist} at: {DateTime.Now}");
                         // track.FullPath;
                         var tempWav = await ConvertToWav(track);
 
@@ -87,15 +88,28 @@ namespace StrausRadio
                 {
                     var album = new Album();
 
-                    album.Artist = artistDir.Name;
-                    album.Name = albumDir.Name;
+                    var trackFiles = albumDir.EnumerateFiles();
 
-                    var tracks = albumDir.EnumerateFiles();
+                    var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension))
+                        .OrderBy(t => t.Name);
 
-                    album.Tracks = tracks.Where(t => AudioExtensions.Contains(t.Extension))
-                        .Select(t => new Track() { Name = t.Name, Extension = t.Extension, FullPath = t.FullName })
-                        .OrderBy(t => t.Name)
-                        .ToList();
+                    var albumTracks = new List<Track>();
+
+                    foreach (var track in tracks)
+                    {
+                        albumTracks.Add(new Track()
+                        {
+                            Title = TagLib.File.Create(track.FullName).Tag.Title,
+                            Name = track.Name,
+                            FullPath = track.FullName,
+                            Extension = track.Extension
+                        });
+                    }
+
+                    var tags = TagLib.File.Create(albumTracks.First().FullPath);
+
+                    album.Artist = tags.Tag.FirstAlbumArtist;
+                    album.Title = tags.Tag.Album;
 
                     results.Add(album);
                 }                
@@ -156,13 +170,14 @@ namespace StrausRadio
 
     public struct Album
     {
-        public string Name;
+        public string Title;
         public string Artist;
         public List<Track> Tracks;
     }
 
     public struct Track
     {
+        public string Title;
         public string Name;
         public string Extension;
         public string FullPath;
