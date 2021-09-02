@@ -22,8 +22,8 @@ namespace StrausRadio
 
         private void Init()
         {
-            ClearTemp();
             Settings.Init();
+            ClearTemp();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,7 +48,7 @@ namespace StrausRadio
 
                         var file = track.Extension != ".wav" ? await ConvertToWav(track) : track.FullPath;
 
-                        var process = new ProcessStartInfo("aplay", $"-Dhw:1,0 {file}")
+                        var process = new ProcessStartInfo("aplay", $"{Settings.APlayArgumnets} {file}")
                         {
                             CreateNoWindow = true,
                             UseShellExecute = false,
