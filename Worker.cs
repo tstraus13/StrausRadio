@@ -14,12 +14,6 @@ namespace StrausRadio
     {
         private readonly ILogger<Worker> _logger;
         private static Random rng = new Random();
-        // TODO: Add Extension filter to settings
-        private List<string> AudioExtensions = new List<string>() { ".mp3", ".flac", ".wav" };
-        // TODO: Add Path to music to settings
-        private const string MUSIC_PATH = @"/mnt/music";
-        // TODO: Add Temp Path to settings
-        private const string TEMP_PATH = @"/tmp";
 
         public Worker(ILogger<Worker> logger)
         {
@@ -28,7 +22,8 @@ namespace StrausRadio
 
         private void Init()
         {
-            ClearTemp(TEMP_PATH);
+            ClearTemp();
+            Settings.Init();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,7 +36,7 @@ namespace StrausRadio
             {
                 _logger.LogInformation($"Beginning to play Albums at: {DateTime.Now}");
 
-                var randomAlbums = GetAlbums(MUSIC_PATH);
+                var randomAlbums = GetAlbums(Settings.MusicLibraryPath);
 
                 _logger.LogInformation($"Album listings have been retreived and randomized at: {DateTime.Now}");
 
@@ -71,11 +66,11 @@ namespace StrausRadio
 
                     }
 
-                    ClearTemp(TEMP_PATH);
+                    ClearTemp();
                 }
             }
 
-            ClearTemp(TEMP_PATH);
+            ClearTemp();
         }
 
         private List<Album> GetAlbums(string musicLocation)
@@ -102,7 +97,7 @@ namespace StrausRadio
                         {
                             var trackFiles = disc.EnumerateFiles();
 
-                            var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+                            var tracks = trackFiles.Where(t => Settings.AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
 
                             foreach (var track in tracks)
                             {
@@ -134,7 +129,7 @@ namespace StrausRadio
 
                         var trackFiles = albumDir.EnumerateFiles();
 
-                        var tracks = trackFiles.Where(t => AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+                        var tracks = trackFiles.Where(t => Settings.AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
 
                         var albumTracks = new List<Track>();
 
@@ -171,7 +166,7 @@ namespace StrausRadio
             ProcessStartInfo process;
             ProcessAsync.Result result;
 
-            var tempFile = $"{TEMP_PATH}/{Guid.NewGuid()}.wav";
+            var tempFile = $"{Settings.TempDirectory}/{Guid.NewGuid()}.wav";
 
             process = new ProcessStartInfo("ffmpeg", $"-i \"{track.FullPath}\" \"{tempFile}\"")
             {
@@ -191,11 +186,11 @@ namespace StrausRadio
             return tempFile;
         }
 
-        private void ClearTemp(string tempDir)
+        private void ClearTemp()
         {
             _logger.LogInformation($"Clearing Temp folder at: {DateTime.Now}");
 
-            DirectoryInfo temp = new DirectoryInfo(tempDir);
+            DirectoryInfo temp = new DirectoryInfo(Settings.TempDirectory);
 
             var files = temp.EnumerateFiles().Where(f => f.Extension.Contains("wav"));
 
