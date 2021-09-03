@@ -20,24 +20,22 @@ namespace StrausRadio
             _logger = logger;
         }
 
-        private void Init()
+        public override Task StartAsync(CancellationToken cancellationToken)
         {
             Settings.Init();
             ClearTemp();
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Init();
-
-            _logger.LogInformation($"Worker started at: {DateTime.Now}");
 
             if (string.IsNullOrEmpty(Settings.MusicLibraryPath))
             {
                 _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart. Stopping at: {DateTime.Now}");
-                return;
+                return StopAsync(cancellationToken);
             }
 
+            return base.StartAsync(cancellationToken);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation($"Beginning to play Albums at: {DateTime.Now}");
@@ -75,8 +73,18 @@ namespace StrausRadio
                     ClearTemp();
                 }
             }
+        }
 
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
             ClearTemp();
+            return base.StopAsync(cancellationToken);
+        }
+
+        public override void Dispose()
+        {
+            ClearTemp();
+            base.Dispose();
         }
 
         private List<Album> GetAlbums(string musicLocation)
