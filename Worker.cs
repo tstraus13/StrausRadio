@@ -32,6 +32,12 @@ namespace StrausRadio
 
             _logger.LogInformation($"Worker started at: {DateTime.Now}");
 
+            if (string.IsNullOrEmpty(Settings.MusicLibraryPath))
+            {
+                _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart. Stopping at: {DateTime.Now}");
+                return;
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation($"Beginning to play Albums at: {DateTime.Now}");
