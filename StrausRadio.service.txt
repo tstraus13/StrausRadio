@@ -1,9 +1,10 @@
 ﻿[Unit]
 Description=Straus Radio
-#After=network.target # If you have you music collection on a networking location. You may want to wait for network to complete.
+# If you have you music collection on a networking location. You may want to wait for network to complete.
+#After=network.target
 
 [Service]
-Type=notify
+Type=simple
 # Specify the user and group to run as
 User=
 Group=
