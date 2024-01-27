@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace StrausRadio
 {
@@ -28,7 +29,8 @@ namespace StrausRadio
             var builder = new ConfigurationBuilder()
                 .AddJsonFile($"appsettings.json", true, true)
                 //.AddJsonFile($"appsettings.{env}.json", true, true)
-                .AddJsonFile(Path.Combine(DefaultDirectory, "settings.json"), true, true);
+                .AddJsonFile(Path.Combine(DefaultDirectory, "settings.json"), true, true)
+                .AddUserSecrets(Assembly.GetExecutingAssembly(), true);
 
             ConfigFile = builder.Build();
 

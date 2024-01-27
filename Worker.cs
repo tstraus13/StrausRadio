@@ -64,7 +64,6 @@ namespace StrausRadio
 
                         if (result == null || result.ExitCode == null || result.ExitCode != 0)
                             _logger.LogError($"There was an issue playing the file {track.FullPath} at: {DateTime.Now}");
-
                         else
                             _logger.LogInformation($"Finished playback of file at: {DateTime.Now}");
 
