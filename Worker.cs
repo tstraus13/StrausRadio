@@ -27,7 +27,7 @@ namespace StrausRadio
 
             if (string.IsNullOrEmpty(Settings.MusicLibraryPath))
             {
-                _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart. Stopping at: {DateTime.Now}");
+                _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart.");
                 return StopAsync(cancellationToken);
             }
 
@@ -36,19 +36,19 @@ namespace StrausRadio
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation($"Starting StrausRadio...");
+            
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation($"Beginning to play Albums at: {DateTime.Now}");
-
                 var randomAlbums = GetAlbums(Settings.MusicLibraryPath);
 
-                _logger.LogInformation($"Album listings have been retreived and randomized at: {DateTime.Now}");
+                _logger.LogInformation($"Album listings have been retrieved and randomized");
 
                 foreach (var album in randomAlbums)
                 {
                     foreach (var track in album.Tracks)
                     {
-                        _logger.LogInformation($"Now Playing \"{track.FileName}\" from {album.Title} by {album.Artist} at: {DateTime.Now}");
+                        _logger.LogInformation($"Now Playing \"{track.FileName}\" from {album.Title} by {album.Artist}");
 
                         var file = track.Extension != ".wav" ? await ConvertToWav(track) : track.FullPath;
 
@@ -63,9 +63,9 @@ namespace StrausRadio
                         var result = await ProcessAsync.RunAsync(process);
 
                         if (result == null || result.ExitCode == null || result.ExitCode != 0)
-                            _logger.LogError($"There was an issue playing the file {track.FullPath} at: {DateTime.Now}");
+                            _logger.LogError($"There was an issue playing the file {track.FullPath}");
                         else
-                            _logger.LogInformation($"Finished playback of file at: {DateTime.Now}");
+                            _logger.LogInformation($"Finished playback of file");
 
                     }
 
@@ -191,17 +191,17 @@ namespace StrausRadio
             result = await ProcessAsync.RunAsync(process);
 
             if (result == null || result.ExitCode == null || result.ExitCode != 0)
-                _logger.LogError($"There was an issue Converting the file {track.FullPath} to WAV at: {DateTime.Now}");
+                _logger.LogError($"There was an issue Converting the file {track.FullPath} to WAV");
 
             else
-                _logger.LogInformation($"Successfully converted file to WAV at: {DateTime.Now}");
+                _logger.LogInformation($"Successfully converted file to WAV");
 
             return tempFile;
         }
 
         private void ClearTemp()
         {
-            _logger.LogInformation($"Clearing Temp folder at: {DateTime.Now}");
+            _logger.LogInformation($"Clearing Temp Folder");
 
             DirectoryInfo temp = new DirectoryInfo(Settings.TempDirectory);
 
