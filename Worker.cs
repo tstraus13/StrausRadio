@@ -20,25 +20,22 @@ namespace StrausRadio
             _logger = logger;
         }
 
-        public override Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation($"Starting StrausRadio...");
+
+            stoppingToken.Register(StopRequested);
+            
             Settings.Init();
             ClearTemp();
 
             if (string.IsNullOrEmpty(Settings.MusicLibraryPath))
             {
                 _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart.");
-                return StopAsync(cancellationToken);
+                return;
             }
-
-            return base.StartAsync(cancellationToken);
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            _logger.LogInformation($"Starting StrausRadio...");
             
-            while (!stoppingToken.IsCancellationRequested)
+            while (!stoppingToken.IsCancellationRequested && !WorkerFlags.Stop)
             {
                 var randomAlbums = GetAlbums(Settings.MusicLibraryPath);
 
@@ -46,22 +43,29 @@ namespace StrausRadio
 
                 foreach (var album in randomAlbums)
                 {
+                    if (stoppingToken.IsCancellationRequested || WorkerFlags.Stop)
+                        break;
+                    
                     foreach (var track in album.Tracks)
                     {
+                        if (stoppingToken.IsCancellationRequested || WorkerFlags.Stop)
+                            break;
+                        
                         _logger.LogInformation($"Now Playing \"{track.FileName}\" from {album.Title} by {album.Artist}");
 
                         var file = track.Extension != ".wav" ? await ConvertToWav(track) : track.FullPath;
-
+                        
                         var process = new ProcessStartInfo("aplay", $"{Settings.APlayArgumnets} {file}")
                         {
                             CreateNoWindow = true,
                             UseShellExecute = false,
                             RedirectStandardError = true,
-                            RedirectStandardOutput = true
+                            RedirectStandardOutput = true,
+                            RedirectStandardInput = false
                         };
-
+                        
                         var result = await ProcessAsync.RunAsync(process);
-
+                        
                         if (result == null || result.ExitCode == null || result.ExitCode != 0)
                             _logger.LogError($"There was an issue playing the file {track.FullPath}");
                         else
@@ -74,16 +78,10 @@ namespace StrausRadio
             }
         }
 
-        public override Task StopAsync(CancellationToken cancellationToken)
+        private void StopRequested()
         {
+            _logger.LogInformation("Stopping StrausRadio...");
             ClearTemp();
-            return base.StopAsync(cancellationToken);
-        }
-
-        public override void Dispose()
-        {
-            ClearTemp();
-            base.Dispose();
         }
 
         private List<Album> GetAlbums(string musicLocation)
@@ -228,5 +226,10 @@ namespace StrausRadio
         public string FileName;
         public string Extension;
         public string FullPath;
+    }
+
+    public static class WorkerFlags
+    {
+        public static bool Stop { get; set; } = false;
     }
 }

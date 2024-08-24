@@ -30,12 +30,12 @@ namespace StrausRadio
                 .AddJsonFile($"appsettings.json", true, true)
                 //.AddJsonFile($"appsettings.{env}.json", true, true)
                 .AddJsonFile(Path.Combine(DefaultDirectory, "settings.json"), true, true)
+                .AddJsonFile("settings.json", true, true)
                 .AddUserSecrets(Assembly.GetExecutingAssembly(), true);
 
             ConfigFile = builder.Build();
 
             Directory.CreateDirectory(DefaultDirectory);
-
 
             if (!string.IsNullOrEmpty(ConfigFile["TempDirectory"]))
             {

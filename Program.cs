@@ -11,6 +11,11 @@ namespace StrausRadio
     {
         public static void Main(string[] args)
         {
+            Console.CancelKeyPress += delegate
+            {
+                WorkerFlags.Stop = true;
+            };
+            
             CreateHostBuilder(args).Build().Run();
         }
 

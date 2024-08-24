@@ -1,13 +1,13 @@
 {
   // REQUIRED - Will not run without a directory set
-  "MusicLibraryPath": "",
+  "MusicLibraryPath": "/mnt/cerebrum/music",
 
   // Default: None
   // Arguments to give aplay
   "APlayArgumnets": "",
 
   // Default: /tmp
-  "TempDirectory": "",
+  "TempDirectory": "/tmp",
 
   // Default: .mp3, .flac, .wav (Separate by semicolon ;)
   // What file extensions do you want to look for as music
