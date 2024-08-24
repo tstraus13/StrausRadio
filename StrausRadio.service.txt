@@ -6,8 +6,8 @@ Description=Straus Radio
 [Service]
 Type=simple
 # Specify the user and group to run as
-User=
-Group=
+#User=
+#Group=
 # Specify the location where you installed the exectable
 ExecStart=/usr/local/bin/strausradio
 
