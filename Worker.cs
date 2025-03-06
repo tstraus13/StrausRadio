@@ -13,16 +13,17 @@ namespace StrausRadio
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private static Random rng = new Random();
+        private readonly Random _rng;
 
         public Worker(ILogger<Worker> logger)
         {
             _logger = logger;
+            _rng = new Random();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation($"Starting StrausRadio...");
+            _logger.LogInformation("Starting StrausRadio...");
 
             stoppingToken.Register(StopRequested);
             
@@ -31,15 +32,15 @@ namespace StrausRadio
 
             if (string.IsNullOrEmpty(Settings.MusicLibraryPath))
             {
-                _logger.LogError($"Music Library Path is missing. Cannot start. Add a path and restart.");
+                _logger.LogError("Music Library Path is missing. Cannot start. Add a path and restart.");
                 return;
             }
             
-            while (!stoppingToken.IsCancellationRequested && !WorkerFlags.Stop)
+            while (!stoppingToken.IsCancellationRequested || !WorkerFlags.Stop)
             {
                 var randomAlbums = GetAlbums(Settings.MusicLibraryPath);
 
-                _logger.LogInformation($"Album listings have been retrieved and randomized");
+                _logger.LogInformation("Album listings have been retrieved and randomized");
 
                 foreach (var album in randomAlbums)
                 {
@@ -69,7 +70,7 @@ namespace StrausRadio
                         if (result == null || result.ExitCode == null || result.ExitCode != 0)
                             _logger.LogError($"There was an issue playing the file {track.FullPath}");
                         else
-                            _logger.LogInformation($"Finished playback of file");
+                            _logger.LogInformation("Finished playback of file");
 
                     }
 
@@ -108,22 +109,21 @@ namespace StrausRadio
                         {
                             var trackFiles = disc.EnumerateFiles();
 
-                            var tracks = trackFiles.Where(t => Settings.AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+                            var tracks = trackFiles
+                                .Where(t => Settings.AudioExtensions.Contains(t.Extension))
+                                .OrderBy(t => t.Name)
+                                .ToList();
 
                             foreach (var track in tracks)
                             {
-                                var num = 1;
-
                                 albumTracks.Add(new Track()
                                 {
-                                    Number = num,
+                                    Number = tracks.IndexOf(track) + 1,
                                     Disc = int.Parse(disc.Name.Split(" ")[1]),
                                     FileName = track.Name,
                                     FullPath = track.FullName,
                                     Extension = track.Extension
                                 });
-
-                                num++;
                             }
                         }
 
@@ -140,24 +140,23 @@ namespace StrausRadio
 
                         var trackFiles = albumDir.EnumerateFiles();
 
-                        var tracks = trackFiles.Where(t => Settings.AudioExtensions.Contains(t.Extension)).OrderBy(t => t.Name);
+                        var tracks = trackFiles
+                            .Where(t => Settings.AudioExtensions.Contains(t.Extension))
+                            .OrderBy(t => t.Name)
+                            .ToList();
 
                         var albumTracks = new List<Track>();
 
                         foreach (var track in tracks)
                         {
-                            var num = 1;
-
                             albumTracks.Add(new Track()
                             {
-                                Number = num,
+                                Number = tracks.IndexOf(track) + 1,
                                 Disc = 1,
                                 FileName = track.Name,
                                 FullPath = track.FullName,
                                 Extension = track.Extension
                             });
-
-                            num++;
                         }
 
                         album.Artist = artistDir.Name;
@@ -169,37 +168,36 @@ namespace StrausRadio
                 }                
             }
 
-            return results.OrderBy(r => rng.Next()).ToList();
+            return results.OrderBy(r => _rng.Next()).ToList();
         }
 
         private async Task<string> ConvertToWav(Track track)
         {
-            ProcessStartInfo process;
-            ProcessAsync.Result result;
-
             var tempFile = $"{Settings.TempDirectory}/{Guid.NewGuid()}.wav";
 
-            process = new ProcessStartInfo("ffmpeg", $"-i \"{track.FullPath}\" \"{tempFile}\"")
+            var process = new ProcessStartInfo("ffmpeg", $"-i \"{track.FullPath}\" \"{tempFile}\"")
             {
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true
             };
-            result = await ProcessAsync.RunAsync(process);
+            var result = await ProcessAsync.RunAsync(process);
 
-            if (result == null || result.ExitCode == null || result.ExitCode != 0)
+            if (result?.ExitCode == null || result.ExitCode != 0)
+            {
                 _logger.LogError($"There was an issue Converting the file {track.FullPath} to WAV");
+                return string.Empty;
+            }
 
-            else
-                _logger.LogInformation($"Successfully converted file to WAV");
+            _logger.LogInformation("Successfully converted file to WAV");
 
             return tempFile;
         }
 
         private void ClearTemp()
         {
-            _logger.LogInformation($"Clearing Temp Folder");
+            _logger.LogInformation("Clearing Temp Folder");
 
             DirectoryInfo temp = new DirectoryInfo(Settings.TempDirectory);
 
